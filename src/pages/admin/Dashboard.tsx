@@ -62,10 +62,13 @@ export default function AdminDashboard() {
     fetchEmployees();
     fetchLocations();
     fetchAttendanceRecords();
+    calculateMonthlyHours();
+    fetchActiveRecord();
     const interval = setInterval(() => {
       fetchAttendanceRecords();
     }, 60000);
     return () => clearInterval(interval);
+
   }, []);
 
   
@@ -294,7 +297,7 @@ export default function AdminDashboard() {
         ['Week', 'Day', 'Date', 'Worked Hours', 'Ort.'], // Headers
       ];
   
-      let currentDate = new Date(2025, 0, 1); // Start at January 1, 2025
+      const currentDate = new Date(2025, 0, 1); // Start at January 1, 2025
       let weekNumber = 1; // Start with week 1
       let startRow = 2; // Track the starting row of the week (Excel rows are 1-based)
   
