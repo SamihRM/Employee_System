@@ -273,7 +273,31 @@ export default function AdminDashboard() {
       alert(`Error: ${error.message}`);
     }
   }
+  // ----------------------------------------
+  // 5b. DELETE LOCATION  
+  // ----------------------------------------
+  async function handleDeleteLocation(locationId: string) {
+    const confirmed = window.confirm(
+      'Standort wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.'
+    );
+    if (!confirmed) return;
 
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', locationId);
+
+      if (error) throw error;
+
+      // Refresh locations
+      await fetchLocations();
+    } catch (err: any) {
+      console.error('Error deleting location:', err);
+      alert(`Fehler beim Löschen: ${err.message}`);
+    }
+  }
+  // ----------------------------------------
   async function exportToExcel() {
     const wb = XLSX.utils.book_new(); // Create a new workbook
   
@@ -664,9 +688,16 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => openLocationForm(location)}
-                            className="text-blue-600 hover:text-blue-500"
+                            className="text-blue-600 hover:text-blue-500 mr-3"
                           >
                             Bearbeiten
+                          </button>
+                          {/* DELETE BUTTON FOR LOCATION  <-- ADDED */}
+                          <button
+                            onClick={() => handleDeleteLocation(location.id)}
+                            className="text-red-600 hover:text-red-500"
+                          >
+                            Löschen
                           </button>
                         </td>
                       </tr>
