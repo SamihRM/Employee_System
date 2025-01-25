@@ -62,8 +62,8 @@ export default function AdminDashboard() {
     fetchEmployees();
     fetchLocations();
     fetchAttendanceRecords();
-    calculateMonthlyHours();
-    fetchActiveRecord();
+    //calculateMonthlyHours();
+    //fetchActiveRecord();
     const interval = setInterval(() => {
       fetchAttendanceRecords();
     }, 60000);
