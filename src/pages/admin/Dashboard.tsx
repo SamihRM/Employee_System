@@ -454,12 +454,12 @@ export default function AdminDashboard() {
             <div className="px-4 py-5 sm:p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-medium text-gray-900">{t('employeeList.name')}</h2>
-                <button
+                {/* <button
                   onClick={() => openEmployeeForm()}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   {t('employeeList.addNew')}
-                </button>
+                </button> */}
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
