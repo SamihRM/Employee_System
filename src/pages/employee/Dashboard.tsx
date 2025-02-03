@@ -3,9 +3,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Clock, MapPin, LogOut } from 'lucide-react';
 import type { Location, AttendanceRecord } from '../../types/database';
-
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../../components/LanguageSelector';
 export default function EmployeeDashboard() {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation();
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [task, setTask] = useState<string>('');
@@ -18,7 +20,7 @@ export default function EmployeeDashboard() {
     fetchLocations();
     fetchActiveRecord();
     calculateMonthlyHours();
-  }, []);
+  }, [user]);
 
   // -------------------------------------------
   // Fetch locations
@@ -151,7 +153,7 @@ export default function EmployeeDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold text-gray-800">Mitarbeiter Dashboard</h1>
+              <h1 className="text-xl font-bold text-gray-800">{t('dashboard.employee')}</h1>
             </div>
             <div className="flex items-center">
               <span className="text-gray-700 mr-4">
@@ -162,7 +164,7 @@ export default function EmployeeDashboard() {
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                Abmelden
+                {t('dashboard.signOut')}
               </button>
             </div>
           </div>
@@ -175,11 +177,11 @@ export default function EmployeeDashboard() {
           {/* Left Panel: Monthly Overview */}
           <div className="md:col-span-1">
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Monatliche Übersicht</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">{t('dashboard.monthlyOverview')}</h2>
               <div className="flex items-center justify-between">
                 <Clock className="w-8 h-8 text-blue-500" />
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">Gesamtstunden diesen Monat</p>
+                  <p className="text-sm text-gray-500">{t('dashboard.totalHours')}</p>
                   <p className="text-2xl font-semibold text-gray-900">
                     {monthlyHours.toFixed(2)}h
                   </p>
@@ -193,13 +195,13 @@ export default function EmployeeDashboard() {
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">
-                  {activeRecord ? 'Aktuelle Schicht' : 'Neue Schicht beginnen'}
+                {activeRecord ? t('dashboard.activeShift') : t('dashboard.startNewShift')}
                 </h2>
 
                 {activeRecord ? (
                   <div>
                     <p className="text-sm text-gray-500 mb-4">
-                      Eingecheckt seit:{' '}
+                      {t('dashboard.Checked in since')}:{' '}
                       {new Date(activeRecord.check_in).toLocaleString('de-DE')}
                     </p>
                     <button
@@ -207,21 +209,21 @@ export default function EmployeeDashboard() {
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
                     >
                       <Clock className="w-4 h-4 mr-2" />
-                      Auschecken
+                      {t('dashboard.checkOut')}
                     </button>
                   </div>
                 ) : (
                   <form className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Standort
+                        {t('dashboard.locations')}
                       </label>
                       <select
                         value={selectedLocation}
                         onChange={(e) => setSelectedLocation(e.target.value)}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       >
-                        <option value="">Standort auswählen</option>
+                        <option value="">{t('dashboard.selectLocation')}</option>
                         {locations.map((location) => (
                           <option key={location.id} value={location.id}>
                             {location.name}
@@ -232,27 +234,27 @@ export default function EmployeeDashboard() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Aufgabe
+                        {t('dashboard.Task')}
                       </label>
                       <input
                         type="text"
                         value={task}
                         onChange={(e) => setTask(e.target.value)}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="Aufgabenbeschreibung"
+                        placeholder={t("dashboard.task description")}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Bemerkungen
+                        {t('dashboard.notes')}
                       </label>
                       <textarea
                         value={comments}
                         onChange={(e) => setComments(e.target.value)}
                         rows={3}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="Optionale Bemerkungen"
+                        placeholder={t('dashboard.optionalNotes')}
                       />
                     </div>
 
@@ -263,7 +265,7 @@ export default function EmployeeDashboard() {
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
                     >
                       <Clock className="w-4 h-4 mr-2" />
-                      Einchecken
+                      {t('dashboard.checkIn')}
                     </button>
                   </form>
                 )}

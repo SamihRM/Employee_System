@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, AlertCircle } from 'lucide-react';
-
+import { useTranslation } from 'react-i18next';
 const schema = z.object({
   firstName: z.string().min(2, 'Vorname muss mindestens 2 Zeichen lang sein'),
   lastName: z.string().min(2, 'Nachname muss mindestens 2 Zeichen lang sein'),
@@ -21,6 +21,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function SignUp() {
   const { signUp } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -47,7 +48,7 @@ export default function SignUp() {
         <div className="flex items-center justify-center mb-8">
           <UserPlus className="w-12 h-12 text-blue-600" />
         </div>
-        <h1 className="text-2xl font-bold text-center mb-6">Registrieren</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">{t('auth.register')}</h1>
         
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
@@ -59,7 +60,7 @@ export default function SignUp() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Vorname
+              {t('employeeList.firstName')}
             </label>
             <input
               type="text"
@@ -73,7 +74,7 @@ export default function SignUp() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Nachname
+              {t('employeeList.name')}
             </label>
             <input
               type="text"
@@ -87,7 +88,7 @@ export default function SignUp() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              E-Mail-Adresse
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -101,7 +102,7 @@ export default function SignUp() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Passwort
+              {t('auth.password')}
             </label>
             <input
               type="password"
@@ -115,7 +116,7 @@ export default function SignUp() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Passwort bestätigen
+              {t('auth.confirmPassword')}
             </label>
             <input
               type="password"
@@ -131,17 +132,17 @@ export default function SignUp() {
             type="submit"
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Registrieren
+            {t('auth.register')}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          Bereits registriert?{' '}
+          {t('auth.alreadyRegistered')}{' '}
           <a
             href="/anmelden"
             className="font-medium text-blue-600 hover:text-blue-500"
           >
-            Anmelden
+            {t('auth.signIn')}
           </a>
         </p>
       </div>

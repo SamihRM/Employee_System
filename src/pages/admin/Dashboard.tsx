@@ -5,13 +5,14 @@ import { supabase } from '../../lib/supabase';
 //import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { Users, MapPin, Download, LogOut } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../../components/LanguageSelector';
 // These are just example types. Adjust if your real types differ.
 import type { Profile, Location, AttendanceRecord } from '../../types/database';
 
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
-
+  const { t } = useTranslation();
   // State for employees, locations, attendance records
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -300,91 +301,86 @@ export default function AdminDashboard() {
   // ----------------------------------------
   async function exportToExcel() {
     const wb = XLSX.utils.book_new(); // Create a new workbook
-  
+
     // Group attendance records by employee
     const employeeMap: Record<string, AttendanceRecord[]> = {};
-  
+
     for (const record of attendanceRecords) {
-      const firstName = record.profiles?.first_name || 'Unknown';
-      const lastName = record.profiles?.last_name || '';
-      const employeeName = `${firstName} ${lastName}`.trim();
-  
-      if (!employeeMap[employeeName]) {
-        employeeMap[employeeName] = [];
-      }
-      employeeMap[employeeName].push(record);
+        const firstName = record.profiles?.first_name || 'Unknown';
+        const lastName = record.profiles?.last_name || '';
+        const employeeName = `${firstName} ${lastName}`.trim();
+
+        if (!employeeMap[employeeName]) {
+            employeeMap[employeeName] = [];
+        }
+        employeeMap[employeeName].push(record);
     }
-  
+
     // Iterate through each employee and create a sheet for them
     for (const [employeeName, records] of Object.entries(employeeMap)) {
-      const sheetData = [
-        ['Week', 'Day', 'Date', 'Worked Hours', 'Ort.'], // Headers
-      ];
-  
-      const currentDate = new Date(2025, 0, 1); // Start at January 1, 2025
-      let weekNumber = 1; // Start with week 1
-      let startRow = 2; // Track the starting row of the week (Excel rows are 1-based)
-  
-      while (currentDate.getFullYear() === 2025) {
-        const weekStartRow = startRow; // Save the starting row of the week for formula reference
-  
-        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-          if (currentDate.getFullYear() !== 2025) break; // Stop if year changes
-  
-          // Match attendance record for the current date
-          const matchedRecord = records.find((r) => {
-            const checkInDate = new Date(r.check_in);
-            return (
-              checkInDate.getFullYear() === currentDate.getFullYear() &&
-              checkInDate.getMonth() === currentDate.getMonth() &&
-              checkInDate.getDate() === currentDate.getDate()
-            );
-          });
-  
-          let workedHours = 0;
-          let location = '';
-          if (matchedRecord) {
-            const checkIn = new Date(matchedRecord.check_in);
-            const checkOut = matchedRecord.check_out
-              ? new Date(matchedRecord.check_out)
-              : new Date(); // Assume "now" if no check-out
-            workedHours =
-              (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60); // Convert ms to hours
-            workedHours = Number(workedHours.toFixed(2)); // Round to 2 decimals
-            location = matchedRecord.locations?.name || '';
-          }
-  
-          const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }); // Get day name
-  
-          sheetData.push([
-            `Week ${weekNumber}`,
-            dayName,
-            currentDate.toLocaleDateString('de-DE'), // Format date as DD.MM.YYYY
-            workedHours,
-            location,
-          ]);
-  
-          currentDate.setDate(currentDate.getDate() + 1); // Move to next day
-          startRow++; // Increment row count
+        const sheetData = [['Week', 'Day', 'Date', 'Worked Hours', 'Location']]; // Headers
+
+        let currentDate = new Date(2024, 11, 29); // Start at Sunday, December 29, 2024 (first week of 2025)
+        let weekNumber = 1;
+        let startRow = 2; // Track starting row for week calculations
+
+        while (currentDate.getFullYear() !== 2026) {
+            const weekStartRow = startRow;
+
+            for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+                if (currentDate.getFullYear() === 2026) break; // Stop if year changes to 2026
+
+                // Match attendance records for the current date
+                const matchedRecord = records.find((r) => {
+                    const checkInDate = new Date(r.check_in);
+                    return (
+                        checkInDate.getFullYear() === currentDate.getFullYear() &&
+                        checkInDate.getMonth() === currentDate.getMonth() &&
+                        checkInDate.getDate() === currentDate.getDate()
+                    );
+                });
+
+                let workedHours = 0;
+                let location = '';
+                if (matchedRecord) {
+                    const checkIn = new Date(matchedRecord.check_in);
+                    const checkOut = matchedRecord.check_out ? new Date(matchedRecord.check_out) : new Date(); // Assume "now" if not checked out
+                    workedHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60); // Convert ms to hours
+                    workedHours = Number(workedHours.toFixed(2)); // Round to 2 decimals
+                    location = matchedRecord.locations?.name || '';
+                }
+
+                const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+
+                sheetData.push([
+                    `Week ${weekNumber}`,
+                    dayName,
+                    currentDate.toLocaleDateString('de-DE'), // Format as DD.MM.YYYY
+                    workedHours,
+                    location,
+                ]);
+
+                currentDate.setDate(currentDate.getDate() + 1); // Move to next day
+                startRow++; // Increment row count
+            }
+
+            // Add a total row for the week
+            const totalFormula = `=SUM(D${weekStartRow}:D${startRow - 1})`; // Sum column D for the week
+            sheetData.push([`Week ${weekNumber} TOTAL`, '', '', totalFormula, '']);
+            startRow++; // Increment row count for total row
+            weekNumber++; // Increment week number
         }
-  
-        // Add a total row for the week
-        const totalFormula = `=SUM(D${weekStartRow}:D${startRow - 1})`; // Sum column D for this week
-        sheetData.push([`Week ${weekNumber} TOTAL`, '', '', totalFormula, '']);
-        startRow++; // Increment row count for the total row
-        weekNumber++; // Increment week number
-      }
-  
-      // Create a worksheet for this employee
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  
-      // Add the worksheet to the workbook
-      XLSX.utils.book_append_sheet(wb, ws, employeeName.substring(0, 31)); // Sheet name limited to 31 characters
+
+        // Create a worksheet for this employee
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Add the worksheet to the workbook
+        XLSX.utils.book_append_sheet(wb, ws, employeeName.substring(0, 31)); // Sheet name limited to 31 characters
     }
-  
+
     // Save the workbook
-    XLSX.writeFile(wb, 'anwesenheit.xlsx');
-  }
+    XLSX.writeFile(wb, 'attendance_2025.xlsx');
+}
   // ----------------------------------------
   // 7. Render
   // ----------------------------------------
@@ -396,7 +392,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-800">{t('dashboard.admin')} </h1>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <button
@@ -408,7 +404,7 @@ export default function AdminDashboard() {
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <Users className="w-4 h-4 mr-2" />
-                  Mitarbeiter
+                  {t('dashboard.employees')}
                 </button>
                 <button
                   onClick={() => setActiveTab('locations')}
@@ -419,7 +415,7 @@ export default function AdminDashboard() {
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <MapPin className="w-4 h-4 mr-2" />
-                  Standorte
+                  {t('dashboard.locations')}
                 </button>
                 <button
                   onClick={() => setActiveTab('attendance')}
@@ -430,7 +426,7 @@ export default function AdminDashboard() {
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Anwesenheit
+                  {t('dashboard.attendance')}
                 </button>
               </div>
             </div>
@@ -443,7 +439,7 @@ export default function AdminDashboard() {
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                Abmelden
+                {t('dashboard.signOut')}
               </button>
             </div>
           </div>
@@ -457,12 +453,12 @@ export default function AdminDashboard() {
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Mitarbeiterliste</h2>
+                <h2 className="text-lg font-medium text-gray-900">{t('employeeList.name')}</h2>
                 <button
                   onClick={() => openEmployeeForm()}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  Neuen Mitarbeiter hinzufügen
+                  {t('employeeList.addNew')}
                 </button>
               </div>
               <div className="overflow-x-auto">
@@ -470,13 +466,13 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                      {t('employeeList.name')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Rolle
+                      {t('employeeList.role')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Stundenlohn
+                      {t('employeeList.hourlyRate')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                     </tr>
@@ -488,7 +484,7 @@ export default function AdminDashboard() {
                           {employee.first_name} {employee.last_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {employee.role === 'admin' ? 'Administrator' : 'Mitarbeiter'}
+                          {employee.role === 'admin' ? t('employeeList.Administrator') : t('employeeList.employee')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {employee.hourly_wage}€/h
@@ -498,7 +494,7 @@ export default function AdminDashboard() {
                             onClick={() => openEmployeeForm(employee)}
                             className="text-blue-600 hover:text-blue-500"
                           >
-                            Bearbeiten
+                            {t('employeeList.edit')}
                           </button>
                         </td>
                       </tr>
@@ -517,11 +513,11 @@ export default function AdminDashboard() {
                 ></div>
                 <div className="bg-white p-6 rounded shadow relative z-10 w-full max-w-md">
                   <h3 className="text-lg font-medium mb-4">
-                    {editingEmployeeId ? 'Mitarbeiter bearbeiten' : 'Neuen Mitarbeiter hinzufügen'}
+                    {editingEmployeeId ? t('employeeList.edit') : t('employeeList.addNew')}
                   </h3>
                   <form onSubmit={handleEmployeeSubmit}>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Vorname</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('employeeList.firstName')}</label>
                       <input
                         type="text"
                         className="mt-1 block w-full border border-gray-300 rounded-md p-2"
@@ -536,7 +532,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Nachname</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('employeeList.name')}</label>
                       <input
                         type="text"
                         className="mt-1 block w-full border border-gray-300 rounded-md p-2"
@@ -597,8 +593,8 @@ export default function AdminDashboard() {
                           })
                         }
                       >
-                        <option value="employee">Mitarbeiter</option>
-                        <option value="admin">Administrator</option>
+                        <option value="employee">{t('employeeList.employee')}</option>
+                        <option value="admin">{t('employeeList.Administrator')}</option>
                       </select>
                     </div>
                     <div className="mb-4">
@@ -621,13 +617,13 @@ export default function AdminDashboard() {
                         onClick={closeEmployeeForm}
                         className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded"
                       >
-                        Abbrechen
+                        {t('dashboard.cancel')}
                       </button>
                       <button
                         type="submit"
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                       >
-                        Speichern
+                        {t('dashboard.save')}
                       </button>
                     </div>
                   </form>
@@ -642,12 +638,12 @@ export default function AdminDashboard() {
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Standorte</h2>
+                <h2 className="text-lg font-medium text-gray-900">{t('dashboard.locations')}</h2>
                 <button
                   onClick={() => openLocationForm()}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  Neuen Standort hinzufügen
+                  {t('dashboard.addNewLocation')}
                 </button>
               </div>
               <div className="overflow-x-auto">
@@ -655,13 +651,13 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                        {t('dashboard.LocationName')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Adresse
+                        {t('dashboard.LocationAddress')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Link
+                        {t('dashboard.LocationLink')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                     </tr>
@@ -690,14 +686,14 @@ export default function AdminDashboard() {
                             onClick={() => openLocationForm(location)}
                             className="text-blue-600 hover:text-blue-500 mr-3"
                           >
-                            Bearbeiten
+                            {t('employeeList.edit')}
                           </button>
                           {/* DELETE BUTTON FOR LOCATION  <-- ADDED */}
                           <button
                             onClick={() => handleDeleteLocation(location.id)}
                             className="text-red-600 hover:text-red-500"
                           >
-                            Löschen
+                            {t('employeeList.delete')}
                           </button>
                         </td>
                       </tr>
@@ -716,11 +712,11 @@ export default function AdminDashboard() {
                 ></div>
                 <div className="bg-white p-6 rounded shadow relative z-10 w-full max-w-md">
                   <h3 className="text-lg font-medium mb-4">
-                    {editingLocationId ? 'Standort bearbeiten' : 'Neuen Standort hinzufügen'}
+                    {editingLocationId ? t('dashboard.editLocation') : 'Neuen Standort hinzufügen'}
                   </h3>
                   <form onSubmit={handleLocationSubmit}>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('dashboard.LocationName')}</label>
                       <input
                         type="text"
                         className="mt-1 block w-full border border-gray-300 rounded-md p-2"
@@ -732,7 +728,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Adresse</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('dashboard.LocationAddress')}</label>
                       <input
                         type="text"
                         className="mt-1 block w-full border border-gray-300 rounded-md p-2"
@@ -743,7 +739,7 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700">Link</label>
+                      <label className="block text-sm font-medium text-gray-700">{t('dashboard.LocationLink')}</label>
                       <input
                         type="text"
                         className="mt-1 block w-full border border-gray-300 rounded-md p-2"
@@ -759,13 +755,13 @@ export default function AdminDashboard() {
                         onClick={closeLocationForm}
                         className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded"
                       >
-                        Abbrechen
+                        {t('dashboard.cancel')}
                       </button>
                       <button
                         type="submit"
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                       >
-                        Speichern
+                        {t('dashboard.save')}
                       </button>
                     </div>
                   </form>
@@ -780,13 +776,13 @@ export default function AdminDashboard() {
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-medium text-gray-900">Anwesenheitsliste</h2>
+                <h2 className="text-lg font-medium text-gray-900">{t('dashboard.attendanceList')}</h2>
                 <button
                   onClick={exportToExcel}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Excel Export
+                  ExportToExcel
                 </button>
               </div>
               <div className="overflow-x-auto">
@@ -794,19 +790,19 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mitarbeiter
+                      {t('employeeList.employee')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Standort
+                      {t('dashboard.location')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Check-In
+                      {t('dashboard.checkIn')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Check-Out
+                      {t('dashboard.checkOut')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Aufgabe
+                      {t('dashboard.Task')}
                       </th>
                     </tr>
                   </thead>
